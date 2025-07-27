@@ -185,4 +185,4 @@ Each of these projects will give you hands-on experience in different aspects of
 
 Project Nexus represents the final milestone in the ProDev Backend Engineering program, providing a platform to showcase your skills in backend development. The project encourages practical application of backend technologies, fostering collaboration, innovation, and mastery in the field.
 
-Good luck, and may your code be clean and your systems scalable! 🚀
+Good luck, and may your code be clean and your systems scalable! 
