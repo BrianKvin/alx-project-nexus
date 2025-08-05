@@ -1,14 +1,14 @@
 
 ---
 
-## 📁 `job-board/README.md`
+## `job-board/README.md`
 
 ````markdown
-# 💼 Job Board Backend – ProDev Backend Engineering
+# Job Board Backend – ProDev Backend Engineering
 
 This project is part of **Project Nexus**, the capstone of the **ProDev Backend Engineering** program.
 
-## 📌 Developing a Backend for a Job Board Platform
+## Developing a Backend for a Job Board Platform
 
 This project prepares developers to build **robust backend systems** for platforms requiring complex role management and efficient data retrieval. It focuses on:
 
@@ -18,28 +18,28 @@ This project prepares developers to build **robust backend systems** for platfor
 
 ---
 
-## 📄 Overview
+## Overview
 
 This case study centers around building a backend for a **Job Board Platform**. The system supports job postings, user roles (admin/applicant), and optimized search functionality. It emphasizes API design, access control, and backend performance tuning.
 
 ---
 
-## 🎯 Project Goals
+## Project Goals
 
 The primary objectives of this backend project are:
 
-### ✅ API Development
+### API Development
 - Build RESTful APIs for managing job postings, categories, and applications.
 
-### ✅ Access Control
+### Access Control
 - Implement role-based authentication using JWT for admins and users.
 
-### ✅ Database Efficiency
+### Database Efficiency
 - Optimize job search features through indexing and query optimization.
 
 ---
 
-## 🛠️ Technologies Used
+## Technologies Used
 
 | Technology     | Purpose                                      |
 |----------------|----------------------------------------------|
@@ -50,13 +50,13 @@ The primary objectives of this backend project are:
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 📝 Job Posting Management
+### Job Posting Management
 - CRUD APIs for job listings
 - Categorization by industry, location, and type
 
-### 🔐 Role-Based Authentication
+### Role-Based Authentication
 - **Admins** can manage jobs, categories, and view applications
 - **Users** can apply for jobs and manage their applications
 
@@ -64,13 +64,13 @@ The primary objectives of this backend project are:
 - Filter jobs by location, category, job type, and keywords
 - Indexed fields for fast and responsive query performance
 
-### 📚 API Documentation
+### API Documentation
 - Swagger/OpenAPI documentation
 - Hosted at `/api/docs/` for easy frontend integration
 
 ---
 
-## 🛠️ Setup Instructions
+## Setup Instructions
 
 ```bash
 # Clone the repository
@@ -99,7 +99,7 @@ python manage.py runserver
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 job-board/
@@ -113,7 +113,7 @@ job-board/
 
 ---
 
-## 🚀 Implementation Workflow (Git Commits)
+## Implementation Workflow (Git Commits)
 
 ### Initial Setup
 
@@ -143,38 +143,38 @@ docs: update README with usage details
 
 ---
 
-## 📤 Submission & Deployment
+## Submission & Deployment
 
 * Deploy the Django backend and Swagger UI (locally or via a cloud provider)
 * Ensure all endpoints are accessible and documented
 
 ---
 
-## 🧪 Evaluation Criteria
+## Evaluation Criteria
 
-### ✅ Functionality
+### Functionality
 
 * Job and category APIs support full CRUD operations
 * Role-based authentication works correctly
 
-### ✅ Code Quality
+### Code Quality
 
 * Modular, clean, and adheres to Django best practices
 * Normalized and efficient database schema
 
-### ✅ Performance
+### Performance
 
 * Job search APIs are fast and responsive
 * Indexing and query optimization in place
 
-### ✅ Documentation
+### Documentation
 
 * Swagger docs fully describe the API
 * README provides clear and complete setup instructions
 
 ---
 
-## 🧠 Learning Outcomes
+## Learning Outcomes
 
 * Hands-on experience with role-based access control
 * Built scalable, production-like API endpoints
@@ -182,13 +182,9 @@ docs: update README with usage details
 
 ---
 
-## 📬 Feedback or Questions?
+## Feedback or Questions?
 
 If you have feedback or want to collaborate, feel free to reach out or open an issue.
 
 ---
 
-```
-
-Let me know if you want this adapted to support multi-stack versions (like Node.js or FastAPI) later on. I can also help generate `requirements.txt`, `urls.py`, or a `models.py` scaffold for the Django project if needed.
-```
