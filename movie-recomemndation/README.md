@@ -1,3 +1,4 @@
+```
 ## 📁 `movie-recommendation/README.md`
 
 ```markdown
@@ -58,3 +59,5 @@ movie-recommendation/
 │   ├── movies/
 │   ├── users/
 │   └── ...
+
+```

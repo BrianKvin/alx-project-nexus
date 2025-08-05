@@ -1,3 +1,5 @@
+```
+
 ## 📁 `job-board/README.md`
 
 ```markdown
@@ -53,3 +55,4 @@ job-board/
 📌 Notes
 JWT-based role enforcement via middleware and DRF permissions.
 
+```

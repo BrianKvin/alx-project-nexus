@@ -1,3 +1,4 @@
+```
 📁 e-commerce/README.md
 # 🛒 E-Commerce Backend (Django)
 
@@ -68,3 +69,5 @@ e-commerce/
 │   ├── users/
 │   ├── orders/
 │   └── ...
+
+```

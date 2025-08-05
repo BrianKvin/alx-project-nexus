@@ -1,3 +1,4 @@
+```
 ## 📁 `social-media-feed/README.md`
 
 ```markdown
@@ -53,3 +54,4 @@ social-media-feed/
 The GraphQL API supports filtering, pagination, and nested querying.
 
 Add subscriptions (real-time updates) using Channels or GraphQL subscriptions as future work.
+```
