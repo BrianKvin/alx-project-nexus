@@ -1,0 +1,65 @@
+# Development Dockerfile for Django Job Board Platform
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    DJANGO_SETTINGS_MODULE=config.settings.development
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    # Build essentials
+    build-essential \
+    # Database clients
+    postgresql-client \
+    libpq-dev \
+    # Media processing
+    libjpeg-dev \
+    libpng-dev \
+    libwebp-dev \
+    # Other utilities
+    curl \
+    wget \
+    git \
+    # Development tools
+    vim \
+    less \
+    tree \
+    # Debugging tools
+    strace \
+    tcpdump \
+    netcat-openbsd \
+    # Cleanup
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -r --gid 1000 django && \
+    useradd -r --uid 1000 --gid 1000 -d /app django
+
+# Set working directory
+WORKDIR /app
+
+# Create necessary directories with correct permissions
+RUN mkdir -p /app/staticfiles /app/media /app/logs && \
+    chown -R 1000:1000 /app && \
+    chmod -R 755 /app/staticfiles /app/media /app/logs
+
+# Copy requirements first for better caching
+COPY --chown=1000:1000 requirements/base.txt requirements/development.txt requirements/
+RUN pip install --no-cache-dir -r requirements/development.txt
+
+# Copy project files
+COPY --chown=1000:1000 . .
+
+# Make scripts executable
+RUN chmod +x scripts/wait_for_db.sh
+
+# Switch to non-root user
+USER 1000:1000
+
+# Expose port
+EXPOSE 8000
+
+# Development command
+CMD ["/bin/sh", "-c", "./scripts/wait_for_db.sh db 5432 && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
