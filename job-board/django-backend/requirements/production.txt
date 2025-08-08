@@ -1,0 +1,31 @@
+# Inherit common dependencies
+-r base.txt
+
+# WSGI/ASGI servers
+gunicorn==22.0.0           # WSGI server for HTTP requests (supervisord.conf)
+daphne==4.1.2              # ASGI server for WebSocket support (chat/, supervisord.conf)
+channels==4.1.0            # Django Channels for WebSocket support (api/graphql/subscriptions.py)
+
+# Elasticsearch for search functionality
+elasticsearch==8.15.0      # Elasticsearch client (matches elasticsearch:8.8.0 image)
+
+# Celery for background tasks
+celery==5.4.0              # Celery for async tasks (jobs/tasks.py, accounts/tasks.py)
+django-celery-beat==2.7.0  # Database-backed Celery scheduler
+django-celery-results==2.5.1 # Store Celery results in database
+
+# AWS integration for storage
+boto3==1.35.24             # AWS SDK for S3 storage (AWS_STORAGE_BUCKET_NAME in docker-compose.prod.yml)
+django-storages==1.14.4    # Django storage backends for S3
+
+# API and serialization
+djangorestframework==3.15.2 # Django REST Framework for api/
+graphene-django==3.2.0     # GraphQL support for api/graphql/
+
+# Security and utilities
+django-cors-headers==4.4.0 # CORS support for API
+django-filter==24.3        # Filtering for jobs/filters.py
+gevent==24.2.1             # Async worker support for Gunicorn (supervisord.conf)
+
+# Monitoring
+django-prometheus==2.3.1   # Prometheus metrics for monitoring/ (prometheus.yml)

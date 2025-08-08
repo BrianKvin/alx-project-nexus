@@ -1,0 +1,7 @@
+# Core Django framework
+Django==5.1.1              # Django framework for the entire application
+psycopg2-binary==2.9.9     # PostgreSQL adapter (used with postgres:15-alpine)
+redis==5.0.8               # Redis client for caching and Celery
+Pillow==10.4.0             # Image processing for media files (libjpeg-dev, libpng-dev, libwebp-dev)
+python-decouple==3.8       # Environment variable management (.env)
+requests==2.32.3           # HTTP requests for external APIs
