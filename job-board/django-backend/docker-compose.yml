@@ -1,0 +1,242 @@
+# Development Environment
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: jobboard_db
+    environment:
+      POSTGRES_DB: jobboard_dev
+      POSTGRES_USER: jobboard_user
+      POSTGRES_PASSWORD: dev_password_123
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobboard_user -d jobboard_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobboard_network
+
+  # Redis for Caching and Celery
+  redis:
+    image: redis:7-alpine
+    container_name: jobboard_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobboard_network
+
+  # Elasticsearch for Search
+  elasticsearch:
+    image: elasticsearch:8.8.0
+    container_name: jobboard_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - jobboard_network
+
+  # Django Web Application
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: jobboard_web
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        python manage.py collectstatic --noinput &&
+        echo 'Starting Django development server...' &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - DATABASE_URL=postgresql://jobboard_user:dev_password_123@db:5432/jobboard_dev
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - DEBUG=1
+      - ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - DB_NAME=jobboard_dev
+      - DB_USER=jobboard_user
+      - DB_PASSWORD=dev_password_123
+      - DB_HOST=db
+      - DB_PORT=5432
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - media_data:/app/media
+      - static_data:/app/static
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - jobboard_network
+    restart: unless-stopped
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: jobboard_celery_worker
+    command: celery -A config worker -l info --concurrency=4
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - DATABASE_URL=postgresql://jobboard_user:dev_password_123@db:5432/jobboard_dev
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - DB_NAME=jobboard_dev
+      - DB_USER=jobboard_user
+      - DB_PASSWORD=dev_password_123
+      - DB_HOST=db
+      - DB_PORT=5432
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    depends_on:
+      - db
+      - redis
+      - web
+    networks:
+      - jobboard_network
+    restart: unless-stopped
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: jobboard_celery_beat
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - DATABASE_URL=postgresql://jobboard_user:dev_password_123@db:5432/jobboard_dev
+      - REDIS_URL=redis://redis:6379/0
+      - DB_NAME=jobboard_dev
+      - DB_USER=jobboard_user
+      - DB_PASSWORD=dev_password_123
+      - DB_HOST=db
+      - DB_PORT=5432
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+      - web
+    networks:
+      - jobboard_network
+    restart: unless-stopped
+
+  # Celery Flower (Monitoring)
+  celery_flower:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: jobboard_flower
+    command: celery -A config flower --port=5555
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - celery_worker
+    networks:
+      - jobboard_network
+    restart: unless-stopped
+
+  # MailHog for Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: jobboard_mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - jobboard_network
+
+  # MinIO for S3-compatible storage (development)
+  minio:
+    image: minio/minio:latest
+    container_name: jobboard_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - jobboard_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  media_data:
+    driver: local
+  static_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  jobboard_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

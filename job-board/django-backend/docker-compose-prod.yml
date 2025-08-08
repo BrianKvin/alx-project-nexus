@@ -1,0 +1,301 @@
+# docker-compose.prod.yml - Production Environment
+version: '3.8'
+
+services:
+  # PostgreSQL Database with optimizations
+  db:
+    image: postgres:15-alpine
+    container_name: jobboard_db_prod
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./scripts/backup:/backup
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - jobboard_network_prod
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # Redis with persistence
+  redis:
+    image: redis:7-alpine
+    container_name: jobboard_redis_prod
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - jobboard_network_prod
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # Elasticsearch for production
+  elasticsearch:
+    image: elasticsearch:8.8.0
+    container_name: jobboard_elasticsearch_prod
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data_prod:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+    networks:
+      - jobboard_network_prod
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: jobboard_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - static_data_prod:/app/static
+      - media_data_prod:/app/media
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - web
+    networks:
+      - jobboard_network_prod
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Django Web Application (multiple instances for load balancing)
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+    volumes:
+      - static_data_prod:/app/static
+      - media_data_prod:/app/media
+      - ./logs/django:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - jobboard_network_prod
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # Celery Worker - Multiple instances
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: production
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --concurrency=4
+      --max-tasks-per-child=1000
+      --time-limit=300
+      --soft-time-limit=240
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - media_data_prod:/app/media
+      - ./logs/celery:/app/logs
+    depends_on:
+      - db
+      - redis
+    networks:
+      - jobboard_network_prod
+    restart: always
+    healthcheck:
+      test: ["CMD", "celery", "-A", "config", "inspect", "ping"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.8'
+
+  # Celery Beat - Single instance
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: production
+    command: >
+      celery -A config beat
+      --loglevel=info
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      --pidfile=/tmp/celerybeat.pid
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./logs/celery:/app/logs
+    depends_on:
+      - db
+      - redis
+    networks:
+      - jobboard_network_prod
+    restart: always
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jobboard_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - jobboard_network_prod
+    restart: always
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jobboard_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - jobboard_network_prod
+    restart: always
+
+  # Log aggregation with Fluentd
+  fluentd:
+    image: fluent/fluentd:latest
+    container_name: jobboard_fluentd
+    volumes:
+      - ./docker/logging/fluentd.conf:/fluentd/etc/fluent.conf
+      - ./logs:/var/log
+    ports:
+      - "24224:24224"
+    networks:
+      - jobboard_network_prod
+    restart: always
+
+volumes:
+  postgres_data_prod:
+    driver: local
+  redis_data_prod:
+    driver: local
+  elasticsearch_data_prod:
+    driver: local
+  static_data_prod:
+    driver: local
+  media_data_prod:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  jobboard_network_prod:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
