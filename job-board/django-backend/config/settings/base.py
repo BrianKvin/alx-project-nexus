@@ -16,6 +16,10 @@ DEBUG = False
 
 ALLOWED_HOSTS = []
 
+# Custom user model
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+
 # Application definition
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -28,11 +32,17 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     'rest_framework',
+    'drf_yasg',
 ]
 
 LOCAL_APPS = [
     'apps.accounts',
     'apps.jobs',
+    'apps.categories',
+    'apps.chats',
+    'apps.companies',
+    'apps.notifications',
+    'apps.payments'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -122,6 +132,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'PAGE_SIZE': 20,
 }
 

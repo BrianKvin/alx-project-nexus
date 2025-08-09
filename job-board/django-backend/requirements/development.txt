@@ -1,35 +1,37 @@
-# Inherit common dependencies
--r base.txt
-
-# Development tools
-# Debug toolbar has been removed due to compatibility issues
-ipython==8.27.0            # Enhanced Python shell
-django-extensions==3.2.3   # Extra management commands (e.g., runserver_plus, shell_plus)
-django-debug-toolbar==6.0.0
-
-# API and serialization (same as production for consistency)
-djangorestframework==3.15.2 # Django REST Framework for api/
-graphene-django==3.2.0     # GraphQL support for api/graphql/
-django-cors-headers==4.4.0 # CORS support for API
-django-filter==24.3        # Filtering for jobs/filters.py
-
-# Celery for background tasks (same as production for consistency)
-celery==5.4.0              # Celery for async tasks
-django-celery-beat==2.7.0  # Database-backed Celery scheduler
-django-celery-results==2.5.1 # Store Celery results in database
-
-# WebSocket support (same as production for consistency)
-channels==4.1.0            # Django Channels for WebSocket support (chat/)
-channels-redis==4.2.0      # Redis backend for Channels
-
-# Elasticsearch (same as production for consistency)
-elasticsearch==8.15.0      # Elasticsearch client
-
-# AWS integration (optional for development, included for consistency)
-boto3==1.35.24             # AWS SDK for S3 storage
-django-storages==1.14.4    # Django storage backends for S3
-
-# Development services
-# mailhog==1.0.0             # MailHog client for email testing (port 8025)
-minio==7.2.8               # MinIO client for S3-compatible storage (port 9001)
-flower==2.0.1              # Celery Flower for task monitoring (port 5555)
+amqp==5.3.1
+asgiref==3.9.1
+billiard==4.2.1
+celery==5.5.3
+certifi==2025.8.3
+charset-normalizer==3.4.2
+click==8.2.1
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.3.0
+cron-descriptor==1.4.5
+Django==5.1.1
+django-celery-beat==2.8.1
+django-cors-headers==4.7.0
+django-extensions==4.1
+django-filter==25.1
+django-timezone-field==7.1
+django_celery_results==2.6.0
+djangorestframework==3.16.0
+idna==3.10
+kombu==5.5.4
+packaging==25.0
+pillow==10.4.0
+prompt_toolkit==3.0.51
+psycopg2==2.9.10
+psycopg2-binary==2.9.9
+python-crontab==3.3.0
+python-dateutil==2.9.0.post0
+python-decouple==3.8
+redis==5.0.8
+requests==2.32.3
+six==1.17.0
+sqlparse==0.5.3
+tzdata==2025.2
+urllib3==2.5.0
+vine==5.1.0
+wcwidth==0.2.13

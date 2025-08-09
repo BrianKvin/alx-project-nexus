@@ -74,7 +74,7 @@ The primary objectives of this backend project are:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/project-nexus.git
+git clone https://github.com/BrianKvin/alx-project-nexus/tree/main/job-board/django-backend
 cd project-nexus/job-board/django
 
 # Create a virtual environment
@@ -92,12 +92,33 @@ python manage.py createsuperuser
 
 # Run the development server
 python manage.py runserver
+
+# run with docker
+./scripts.docker_commands.sh
 ````
 
 * Access the API: `http://localhost:8000/api/`
 * Access Swagger Docs: `http://localhost:8000/api/docs/`
 
 ---
+
+## REST API
+# Public endpoints
+GET /api/v1/jobs/                    # List jobs (public)
+GET /api/v1/jobs/{id}/               # Job details
+GET /api/v1/companies/               # Company listings
+
+# Authenticated endpoints
+POST /api/v1/jobs/                   # Create job (recruiter)
+PUT /api/v1/jobs/{id}/               # Update job
+DELETE /api/v1/jobs/{id}/            # Delete job
+POST /api/v1/jobs/{id}/apply/        # Apply to job
+GET /api/v1/applications/            # My applications
+
+# Advanced features
+GET /api/v1/jobs/search/             # Advanced search
+POST /api/v1/jobs/bulk-import/       # CSV import
+GET /api/v1/analytics/jobs/{id}/     # Job analytics
 
 ## Project Structure
 
@@ -249,9 +270,4 @@ docs: update README with usage details
 
 ---
 
-## Feedback or Questions?
-
-If you have feedback or want to collaborate, feel free to reach out or open an issue.
-
----
 

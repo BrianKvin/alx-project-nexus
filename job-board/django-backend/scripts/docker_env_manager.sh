@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/docker_commands.sh - Docker management scripts for Job Board Platform
+# scripts/docker_env_manager.sh - Docker environment manager for Job Board Platform
 
 set -e  # Exit on error
 
@@ -107,17 +107,16 @@ User = get_user_model()
 
 try:
     # Try to get the admin user
-    admin = User.objects.get(username='admin')
+    admin = User.objects.get(email='admin@jobboard.com')
     print('Admin user exists. Resetting password...')
     admin.set_password('admin')
-    admin.email = 'admin@jobboard.com'
-    admin.is_staff = True
     admin.is_superuser = True
+    admin.is_staff = True
     admin.save()
-    print('Admin password reset successfully')
+    print('Admin password has been reset.')
 except User.DoesNotExist:
     print('Creating admin user...')
-    User.objects.create_superuser('admin', 'admin@jobboard.com', 'admin')
+    User.objects.create_superuser(email='admin@jobboard.com', password='admin')
     print('Admin user created successfully')
 " 2>/dev/null; then
         print_warning "Could not set up admin user"
@@ -131,7 +130,9 @@ except User.DoesNotExist:
     
     print_success "Development environment is running!"
     print_status "Services available at:"
-    echo "  - Django: http://localhost:8000"
+    echo "  - Django Admin: http://localhost:8000/admin"
+    echo "  - API Documentation (Swagger UI): http://localhost:8000/swagger/"
+    echo "  - API Documentation (ReDoc): http://localhost:8000/redoc/"
     echo "  - PostgreSQL: localhost:5432"
     echo "  - Redis: localhost:6379"
     echo "  - Elasticsearch: http://localhost:9200"

@@ -770,7 +770,7 @@ Remove any stopped containers:bash
 
 docker rm $(docker ps -a -q)
 
-# Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint jobboard_redis (d81e786741faa0bc0caedfed4a967b283c3f97a3d33c2b8979b313a24d0d59f5): failed to bind host port for 0.0.0.0:6379:172.20.0.5:6379/tcp: address already in use
+# Common Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint jobboard_redis (d81e786741faa0bc0caedfed4a967b283c3f97a3d33c2b8979b313a24d0d59f5): failed to bind host port for 0.0.0.0:6379:172.20.0.5:6379/tcp: address already in use
 
 Step-by-Step Resolution1. Identify the Process Using Port 6379Determine what’s occupying port 6379 on your host machine:bash
 
