@@ -824,3 +824,8 @@ docker rm $(docker ps -a -q)
 # Stop all containers and clean up
 docker-compose down -v
 docker system prune -f
+
+# to see all urls
+docker-compose logs urls
+# or view all logs
+docker-compose logs -f

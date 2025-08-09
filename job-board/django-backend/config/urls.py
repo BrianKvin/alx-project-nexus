@@ -1,13 +1,8 @@
-"""
-URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-"""
-
 from django.contrib import admin
 from django.urls import path
+from apps.core.views.health import HealthCheckView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('health/', HealthCheckView.as_view(), name='health-check'),
 ]
