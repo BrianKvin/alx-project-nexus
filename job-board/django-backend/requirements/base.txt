@@ -6,3 +6,11 @@ Pillow==10.4.0             # Image processing for media files (libjpeg-dev, libp
 python-decouple==3.8       # Environment variable management (.env)
 requests==2.32.3           # HTTP requests for external APIs
 python-dotenv==1.0.1       # Environment variable management
+
+# Celery for background tasks
+celery==5.4.0              # Celery for async tasks
+django-celery-beat==2.7.0  # Database-backed Celery scheduler
+django-celery-results==2.5.1 # Store Celery results in database
+kombu==5.4.0               # Messaging library used by Celery
+billiard==4.2.0            # Python multiprocessing fork with improvements
+vine==5.1.1                # Core utilities for Celery
