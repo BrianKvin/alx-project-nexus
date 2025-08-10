@@ -1,5 +1,3 @@
-# Development Environment
-
 services:
   # PostgreSQL Database
   db:
@@ -82,23 +80,49 @@ services:
       start_period: 10s
     command: >
       sh -c "
-        echo 'Waiting for database...' &&
+        # Wait for PostgreSQL
+        until PGPASSWORD=$${DB_PASSWORD} psql -h $${DB_HOST} -U $${DB_USER} -d $${DB_NAME} -c 'SELECT 1' > /dev/null 2>&1; do
+          echo 'Waiting for PostgreSQL...' && sleep 1
+        done &&
+        
+        # Run migrations and collect static files
+        python manage.py migrate &&
         python manage.py collectstatic --noinput &&
-        echo 'Starting Django development server...' &&
+        
+        # Create superuser using a management command
+        python manage.py create_admin_user &&
+        
+        # Display service URLs
+        echo '\n\n=== Application URLs ===' &&
+        echo '- Django: http://localhost:8000' &&
+        echo '- Django Admin: http://localhost:8000/admin' &&
+        echo '- API Documentation (Swagger): http://localhost:8000/api/schema/swagger-ui/' &&
+        echo '- API Schema (OpenAPI): http://localhost:8000/api/schema/' &&
+        echo '- GraphQL Playground: http://localhost:8000/graphql/' &&
+        echo '\n=== Services ===' &&
+        echo '- PostgreSQL: localhost:5432' &&
+        echo '- Redis: localhost:6379' &&
+        echo '- Elasticsearch: http://localhost:9200' &&
+        echo '- Celery Flower: http://localhost:5555' &&
+        echo '- MailHog: http://localhost:8025' &&
+        echo '- MinIO: http://localhost:9001' &&
+        echo '\n' &&
+        
+        # Start the server
         python manage.py runserver 0.0.0.0:8000
       "
+    env_file:
+      - .env
+      - .env.development
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.development
-      - DATABASE_URL=postgresql://jobboard_user:dev_password_123@db:5432/jobboard_dev
-      - REDIS_URL=redis://redis:6379/0
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - DEBUG=1
-      - ALLOWED_HOSTS=localhost,127.0.0.1,web
-      - DB_NAME=jobboard_dev
-      - DB_USER=jobboard_user
-      - DB_PASSWORD=dev_password_123
       - DB_HOST=db
-      - DB_PORT=5432
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - ADMIN_USERNAME
+      - ADMIN_EMAIL
+      - ADMIN_PASSWORD
+      - BASE_URL=http://localhost:8000
+      - DJANGO_DEBUG=True
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,web
     ports:
       - "8000:8000"
     volumes:
@@ -126,14 +150,8 @@ services:
     command: celery -A config worker -l info --concurrency=4
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.development
-      - DATABASE_URL=postgresql://jobboard_user:dev_password_123@db:5432/jobboard_dev
+      - C_FORCE_ROOT=1
       - REDIS_URL=redis://redis:6379/0
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - DB_NAME=jobboard_dev
-      - DB_USER=jobboard_user
-      - DB_PASSWORD=dev_password_123
-      - DB_HOST=db
-      - DB_PORT=5432
     volumes:
       - .:/app
       - media_data:/app/media
@@ -143,6 +161,11 @@ services:
       - web
     networks:
       - jobboard_network
+    healthcheck:
+      test: ["CMD", "celery", "--app=config", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   # Celery Beat (Scheduler)
@@ -155,21 +178,23 @@ services:
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.development
-      - DATABASE_URL=postgresql://jobboard_user:dev_password_123@db:5432/jobboard_dev
+      - C_FORCE_ROOT=1
       - REDIS_URL=redis://redis:6379/0
-      - DB_NAME=jobboard_dev
-      - DB_USER=jobboard_user
-      - DB_PASSWORD=dev_password_123
-      - DB_HOST=db
-      - DB_PORT=5432
     volumes:
       - .:/app
+      - media_data:/app/media
     depends_on:
       - db
       - redis
       - web
+      - celery_worker
     networks:
       - jobboard_network
+    healthcheck:
+      test: ["CMD", "celery", "--app=config", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   # Celery Flower (Monitoring)
@@ -179,22 +204,42 @@ services:
       dockerfile: docker/Dockerfile
       target: development
     container_name: jobboard_flower
-    command: celery -A config flower --port=5555
+    command: celery --app=config flower --port=5555 --broker=redis://redis:6379/0
     environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.development
-      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     ports:
       - "5555:5555"
-    volumes:
-      - .:/app
     depends_on:
       - redis
       - celery_worker
     networks:
       - jobboard_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PGAdmin - PostgreSQL Administration Tool
+  pgadmin:
+    image: dpage/pgadmin4:7.3
+    container_name: jobboard_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@jobboard.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - jobboard_network
     restart: unless-stopped
 
-  # MailHog for Email Testing
+  # MailHog - Email testing tool
   mailhog:
     image: mailhog/mailhog:latest
     container_name: jobboard_mailhog
@@ -230,6 +275,8 @@ volumes:
   media_data:
     driver: local
   static_data:
+    driver: local
+  pgadmin_data:
     driver: local
   minio_data:
     driver: local

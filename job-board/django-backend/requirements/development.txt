@@ -9,13 +9,15 @@ django-debug-toolbar==6.0.0
 
 # API and serialization (same as production for consistency)
 djangorestframework==3.15.2 # Django REST Framework for api/
+djangorestframework-simplejwt==5.3.0 # JWT authentication
+django-rest-passwordreset==1.2.1    # Password reset functionality
 graphene-django==3.2.0     # GraphQL support for api/graphql/
 django-cors-headers==4.4.0 # CORS support for API
 django-filter==24.3        # Filtering for jobs/filters.py
 
 # Celery for background tasks (same as production for consistency)
-celery==5.4.0              # Celery for async tasks
-django-celery-beat==2.7.0  # Database-backed Celery scheduler
+# celery==5.4.0              # This is now in base.txt, so it's redundant.
+django-celery-beat==2.5.0  # Database-backed Celery scheduler
 django-celery-results==2.5.1 # Store Celery results in database
 
 # WebSocket support (same as production for consistency)

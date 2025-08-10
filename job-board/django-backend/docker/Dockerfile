@@ -51,6 +51,11 @@ WORKDIR /app
 
 # Copy requirements first for better caching
 COPY requirements/base.txt requirements/development.txt requirements/
+
+# Install base requirements first
+RUN pip install --no-cache-dir -r requirements/base.txt
+
+# Install development requirements
 RUN pip install --no-cache-dir -r requirements/development.txt
 
 # Copy project files

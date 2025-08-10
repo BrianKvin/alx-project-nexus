@@ -557,3 +557,19 @@ Each one just changes the `DJANGO_SETTINGS_MODULE`.
 ---
 
 Would you like me to generate default contents for `development.py` and `staging.py` based on your `base.py` file, ready to copy-paste?
+
+
+# add .env to .gitignore
+- echo ".env" >> .gitignore
+
+# Create the database user
+sudo -u postgres psql -c "CREATE USER jobboard_user WITH PASSWORD 'Cityzen4';"
+
+# Create the database
+sudo -u postgres psql -c "CREATE DATABASE jobboard_dev;"
+
+# Grant privileges
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE jobboard_dev TO jobboard_user;"
+
+# find a file
+find /home/bk/Programming/ALX/alx-project-nexus/job-board/django-backend -name ".env*" -type f -exec ls -la {} \;

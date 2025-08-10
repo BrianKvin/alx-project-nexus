@@ -90,8 +90,13 @@ nano .env
 # Build and start all services
 ./scripts/docker_commands.sh dev-up
 
+
 # Or manually:
 docker-compose up -d --build
+docker-compose build --no-cache
+
+# migrate
+docker-compose exec web python manage.py migrate
 ```
 
 ## 🔧 Development Environment
@@ -824,3 +829,20 @@ docker rm $(docker ps -a -q)
 # Stop all containers and clean up
 docker-compose down -v
 docker system prune -f
+
+# to see all urls
+docker-compose logs urls
+# or view all logs
+docker-compose logs -f
+
+# for database conflicts, find and remove any existing migrations
+find . -path "*/migrations/*.py" -not -name "__init__.py" -delete && find . -path "*/migrations/*.pyc" -delete
+
+# show migrations
+docker-compose exec web python manage.py showmigrations
+
+# create and apply migrations
+docker-compose exec web python manage.py makemigrations {app name}
+
+# migrate
+docker-compose exec web python manage.py migrate accounts {app name}
